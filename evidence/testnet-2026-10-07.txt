@@ -1,0 +1,27 @@
+== setting up (two throwaway accounts, funded by friendbot)
+alice  GBKKOBEPYCQHW42R5MQ5LZ65MTX7NKWXNNI5M22J4F2PQRWZ5CCJ6N5S
+bob    GCOU5Q2K2R2BPA2DL5FTLAAJ77FKB2FMK5PAQ57VX4BW2JFKMD5LAFQU
+native asset contract  CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+[transaction] bob sent alice 5,000 XLM (tx dc4f1919b45fb4b7649bd2b52380e1a26ef2e6dff55fea83cd90aae0738fe012)
+
+== a policy on Sorogate's public contract: hold at least 10,000 XLM
+[transaction] policy 13 created on CACR5H46E7VKEDJUWRLKZPJPQVPRHTRTJHZOMQLEIHMTXN4MW7O47YQW, owned by alice (tx 02929cad52212dd26e5db16fbc3c574c6833f0e37847f889aec95776efe7c944)
+
+== the gate, pointed at that policy
+[transaction] gate deployed at CBXNFJXLO6VF2TETVZAEKWHHBFP4OMOKXOSDCFXHK2ENVFL3WUDPKMNX (tx 29ac631c1bb64787b27a8abbd2979c06206e55f2c38e902d2b0c87b13b8ecb71; the CLI also uploads the code first, in a transaction of its own, unless it is already on the network)
+
+== what Sorogate says about each account (the policy contract's own answer)
+[simulation] alice: {"allowed":true,"failed_index":null,"reason":0,"version":1}
+[simulation] bob:   {"allowed":false,"failed_index":0,"reason":2,"version":1}
+
+== the gate enforces it
+[transaction] alice enters: let in (tx e76591753b96064ceea4285c0130020e867dc65dca2a2421bda7fdb004ed05c7)
+[reading] alice is a member: true
+[simulation] bob enters: refused -> Error(Contract, #11)  (11 is BelowMinimum)
+[reading] bob is a member: false
+
+== eligibility is not identity: bob tries to enter on behalf of alice, who qualifies but did not sign
+(alice's key removed from the CLI's configuration; only bob can sign now)
+[refused before sending] bob signs, alice has not: ❌ error: Missing signing key for account GBKKOBEPYCQHW42R5MQ5LZ65MTX7NKWXNNI5M22J4F2PQRWZ5CCJ6N5S 
+
+done. gate CBXNFJXLO6VF2TETVZAEKWHHBFP4OMOKXOSDCFXHK2ENVFL3WUDPKMNX, policy 13 on CACR5H46E7VKEDJUWRLKZPJPQVPRHTRTJHZOMQLEIHMTXN4MW7O47YQW

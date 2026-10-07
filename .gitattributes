@@ -1,0 +1,5 @@
+# Keep LF line endings everywhere; shell scripts and generated lockfiles break with CRLF.
+* text=auto eol=lf
+*.sh text eol=lf
+Cargo.lock text eol=lf
+*.wasm binary
