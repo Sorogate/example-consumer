@@ -1,12 +1,15 @@
 extern crate std;
 
 use soroban_sdk::{
-    testutils::{Address as _, MockAuth, MockAuthInvoke},
+    testutils::{
+        storage::{Instance as _, Persistent as _},
+        Address as _, Ledger as _, MockAuth, MockAuthInvoke,
+    },
     token::{StellarAssetClient, TokenClient},
     vec, Address, Bytes, Env, IntoVal,
 };
 
-use crate::{DenyReason, Error, Gate, GateClient};
+use crate::{DataKey, DenyReason, Error, Gate, GateClient};
 
 /// Sorogate's policy contract, as the network holds it: `tests/fixtures/access_policy.wasm` is the code fetched from the
 /// public Testnet deployment (see the README). Importing it gives the real contract and its real types.
@@ -380,4 +383,92 @@ fn the_reason_codes_declared_here_are_the_real_contracts() {
         DenyReason::AfterWindow as u32,
         policy::DenyReason::AfterWindow as u32
     );
+}
+
+// ---------------------------------------------------------------- how long the gate keeps its records
+//
+// The gate promises to keep a record of entry for 90 days, and a forgotten one is archived, not erased. These tests pin that
+// promise in days, not through the constants in `lib.rs`, so changing a constant by mistake fails them. A lifetime is read as
+// the ledgers left before the entry would be archived.
+
+/// One day of ledgers, written out again here on purpose.
+const DAY: u32 = 17_280;
+
+fn member_ttl(s: &Setup, subject: &Address) -> u32 {
+    s.env.as_contract(&s.gate.address, || {
+        s.env
+            .storage()
+            .persistent()
+            .get_ttl(&DataKey::Member(subject.clone()))
+    })
+}
+
+fn instance_ttl(s: &Setup) -> u32 {
+    s.env
+        .as_contract(&s.gate.address, || s.env.storage().instance().get_ttl())
+}
+
+fn pass_days(s: &Setup, days: u32) {
+    s.env
+        .ledger()
+        .with_mut(|ledger| ledger.sequence_number += days * DAY);
+}
+
+/// A subject who qualifies, already let in once.
+fn member() -> (Setup, Address) {
+    let s = setup(100);
+    let subject = Address::generate(&s.env);
+    give(&s, &subject, 100);
+    s.gate.enter(&subject);
+    (s, subject)
+}
+
+#[test]
+fn a_record_of_entry_is_kept_for_90_days() {
+    let (s, subject) = member();
+    assert_eq!(member_ttl(&s, &subject), 90 * DAY);
+}
+
+#[test]
+fn entering_keeps_the_gate_itself_for_90_days() {
+    let s = setup(100);
+    let subject = Address::generate(&s.env);
+    give(&s, &subject, 100);
+    // Before anyone enters, the gate has only the lifetime it was given when it was created.
+    assert!(instance_ttl(&s) < 90 * DAY);
+
+    s.gate.enter(&subject);
+    assert_eq!(instance_ttl(&s), 90 * DAY);
+}
+
+#[test]
+fn entering_again_with_under_30_days_left_extends_the_record_back_to_90_days() {
+    let (s, subject) = member();
+    pass_days(&s, 61);
+    assert_eq!(member_ttl(&s, &subject), 29 * DAY);
+
+    s.gate.enter(&subject);
+    assert_eq!(member_ttl(&s, &subject), 90 * DAY);
+}
+
+#[test]
+fn entering_again_with_under_30_days_left_extends_the_gate_back_to_90_days() {
+    let (s, subject) = member();
+    pass_days(&s, 61);
+    assert_eq!(instance_ttl(&s), 29 * DAY);
+
+    s.gate.enter(&subject);
+    assert_eq!(instance_ttl(&s), 90 * DAY);
+}
+
+#[test]
+fn entering_again_with_over_30_days_left_does_not_shorten_the_record() {
+    let (s, subject) = member();
+    pass_days(&s, 10);
+    assert_eq!(member_ttl(&s, &subject), 80 * DAY);
+
+    s.gate.enter(&subject);
+    // Neither shortened nor reset: there was no need to extend.
+    assert_eq!(member_ttl(&s, &subject), 80 * DAY);
+    assert_eq!(instance_ttl(&s), 80 * DAY);
 }

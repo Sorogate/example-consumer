@@ -131,6 +131,11 @@ exits `2`, and the tests keep passing, because they use the committed fixture.
 - **One policy shape** over one token (native XLM) is demonstrated. The tests use a Stellar asset contract, not other tokens.
 - **A development deployment**, reset from time to time. If the contract above no longer exists, neither do the policies, the gate
   and the accounts in the recorded run.
+- **Expiry is not tested.** The tests check that entering keeps a record, and the gate itself, alive for 90 days and extends them
+  when under 30 days are left (`src/test.rs`, the tests about how long the gate keeps its records). They cannot show what
+  happens once a record has run out: the Soroban test environment does not archive an entry when its lifetime ends, so after
+  91 days `is_member` still answers `true` there. Archiving, rather than erasing, a forgotten record is what the network does,
+  and it is not something these tests show.
 - Nothing here has been used by anyone else, and it is not a statement about Sorogate's security.
 
 ## Contributing and security
