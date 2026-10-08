@@ -29,6 +29,11 @@ NET=(--network testnet)
 
 say() { printf '%s\n' "$*"; }
 
+# Stops the script if a result is not the expected one: `expect <what> <the result> <a pattern it must match>`.
+expect() {
+  printf '%s' "$2" | grep -qE "$3" || { say "[UNEXPECTED] $1: got '$2', expected something matching '$3'"; exit 1; }
+}
+
 # Runs a command, keeps what it printed in TX_OUT, and the hashes of the transactions it sent (the CLI logs them) in TX_HASHES.
 tx() {
   local err
@@ -68,21 +73,31 @@ say "[transaction] gate deployed at $GATE (tx $TX_HASHES; the CLI also uploads t
 
 say
 say "== what Sorogate says about each account (the policy contract's own answer)"
-say "[simulation] alice: $(stellar contract invoke --id "$POLICY_CONTRACT" --source-account alice "${NET[@]}" --send=no -- evaluate --id "$POLICY_ID" --subject "$ALICE" 2>/dev/null | tail -1)"
-say "[simulation] bob:   $(stellar contract invoke --id "$POLICY_CONTRACT" --source-account alice "${NET[@]}" --send=no -- evaluate --id "$POLICY_ID" --subject "$BOB" 2>/dev/null | tail -1)"
+ALICE_ANSWER=$(stellar contract invoke --id "$POLICY_CONTRACT" --source-account alice "${NET[@]}" --send=no -- evaluate --id "$POLICY_ID" --subject "$ALICE" 2>/dev/null | tail -1)
+BOB_ANSWER=$(stellar contract invoke --id "$POLICY_CONTRACT" --source-account alice "${NET[@]}" --send=no -- evaluate --id "$POLICY_ID" --subject "$BOB" 2>/dev/null | tail -1)
+say "[simulation] alice: $ALICE_ANSWER"
+say "[simulation] bob:   $BOB_ANSWER"
+expect "Sorogate's answer for alice" "$ALICE_ANSWER" '"allowed":true'
+expect "Sorogate's answer for bob" "$BOB_ANSWER" '"allowed":false.*"reason":2'   # 2 is BelowMinimum
 
 say
 say "== the gate enforces it"
 tx stellar contract invoke --id "$GATE" --source-account alice "${NET[@]}" -- enter --subject "$ALICE"
 say "[transaction] alice enters: let in (tx $TX_HASHES)"
-say "[reading] alice is a member: $(stellar contract invoke --id "$GATE" --source-account alice "${NET[@]}" -- is_member --subject "$ALICE" 2>/dev/null | tail -1)"
+ALICE_MEMBER=$(stellar contract invoke --id "$GATE" --source-account alice "${NET[@]}" -- is_member --subject "$ALICE" 2>/dev/null | tail -1)
+say "[reading] alice is a member: $ALICE_MEMBER"
+expect "alice's membership" "$ALICE_MEMBER" '^true$'
 
 if refused=$(stellar contract invoke --id "$GATE" --source-account bob "${NET[@]}" -- enter --subject "$BOB" 2>&1); then
   say "[UNEXPECTED] bob was let in"; exit 1
 else
-  say "[simulation] bob enters: refused -> $(printf '%s' "$refused" | grep -oE 'Error\(Contract, #[0-9]+\)' | head -1)  (11 is BelowMinimum)"
+  BOB_ERROR=$(printf '%s' "$refused" | grep -oE 'Error\(Contract, #[0-9]+\)' | head -1)
+  say "[simulation] bob enters: refused -> $BOB_ERROR  (11 is BelowMinimum)"
+  expect "the gate's refusal of bob" "$BOB_ERROR" '#11\)'
 fi
-say "[reading] bob is a member: $(stellar contract invoke --id "$GATE" --source-account bob "${NET[@]}" -- is_member --subject "$BOB" 2>/dev/null | tail -1)"
+BOB_MEMBER=$(stellar contract invoke --id "$GATE" --source-account bob "${NET[@]}" -- is_member --subject "$BOB" 2>/dev/null | tail -1)
+say "[reading] bob is a member: $BOB_MEMBER"
+expect "bob's membership" "$BOB_MEMBER" '^false$'
 
 say
 say "== eligibility is not identity: bob tries to enter on behalf of alice, who qualifies but did not sign"

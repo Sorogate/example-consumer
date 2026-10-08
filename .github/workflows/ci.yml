@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # The deployment check below depends on Testnet, so it is also run once a week: a reset or a change shows up without a push.
+  schedule:
+    - cron: '41 6 * * 1'
 
 permissions:
   contents: read
@@ -22,8 +25,20 @@ jobs:
           version: 28.1.0
       - name: Install the pinned Rust toolchain
         run: rustup show active-toolchain || rustup toolchain install
+      # `--locked` refuses to run if Cargo.lock does not match Cargo.toml, so the dependencies are the ones that were reviewed.
       - run: cargo fmt --all -- --check
-      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo clippy --locked --all-targets -- -D warnings
       # Runs against the real Sorogate policy contract: tests/fixtures/access_policy.wasm, fetched from the public Testnet deployment.
-      - run: cargo test
-      - run: stellar contract build
+      - run: cargo test --locked
+      - run: stellar contract build --locked
+
+  # Does Testnet still hold exactly the Sorogate code the tests run against? This fails if the contract is gone (Testnet was
+  # reset) or is different. That is a signal to look at, not a defect in the gate, which is why it is a job of its own.
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: stellar/stellar-cli@c0f4d0da891bbf214c08b8c5035ae6db80e9a3bd # v28.1.0
+        with:
+          version: 28.1.0
+      - run: bash scripts/verify-deployment.sh
