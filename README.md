@@ -58,6 +58,9 @@ stellar contract build --locked     # the gate's WASM
 bash scripts/testnet-demo.sh        # the same gate on Testnet, with two throwaway accounts
 ```
 
+The demo looks for the gate at `target/wasm32v1-none/release/sorogate_example_gate.wasm`. If you build somewhere else (for
+example with `CARGO_TARGET_DIR` set), pass the path: `bash scripts/testnet-demo.sh path/to/sorogate_example_gate.wasm`.
+
 `verify-deployment.sh` fetches the contract with `stellar contract fetch` and compares its hash with the pin. It exits `0` when
 they match, `1` when the network holds different code, and `2` when it cannot fetch (no network, or Testnet was reset and the
 contract is gone). The tests need no network: they use the committed fixture, and a test checks that file against the pin.
