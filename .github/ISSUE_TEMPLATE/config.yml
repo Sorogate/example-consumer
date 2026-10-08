@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security problem privately
+    url: https://github.com/Sorogate/example-consumer/security/advisories/new
+    about: Do not put the details of a vulnerability in a public issue.
+  - name: A question or a problem with Sorogate itself
+    url: https://github.com/Sorogate/sorogate/issues
+    about: This repository is only the example. Sorogate's contract and SDK are tracked in the main repository.

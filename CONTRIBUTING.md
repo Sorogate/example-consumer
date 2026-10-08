@@ -18,6 +18,17 @@ credential system, and no second implementation of Sorogate. Features of Sorogat
 [the Sorogate repository](https://github.com/Sorogate/sorogate/issues). A change that makes this repository import Sorogate's
 source is out of scope: that the gate does not is the point.
 
+## Picking up an issue
+
+Open issues are on the [issues page](https://github.com/Sorogate/example-consumer/issues). Comment on one to say you would like
+it, and wait for the maintainer to assign it to you before you start. A comment alone does not reserve it. If an assigned issue
+has had no activity for 7 days, the maintainer may ask whether you are still working on it, and may unassign it after 7 more
+days without a reply.
+
+The first time you open a pull request, GitHub holds its CI run until a maintainer approves it. That is a GitHub setting, not
+broken CI. AI-assisted contributions are welcome: you are responsible for what you submit, you have run it, and every claim in
+the description is true.
+
 ## Run the checks
 
 You need Rust (rustup installs the pinned version) and the [Stellar CLI](https://github.com/stellar/stellar-cli) 25.2 or newer. On
