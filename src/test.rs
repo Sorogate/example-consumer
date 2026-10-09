@@ -360,6 +360,17 @@ fn a_no_that_gives_no_reason_is_a_refusal_not_a_pass() {
 }
 
 #[test]
+fn the_gate_error_codes_are_the_public_interface() {
+    // These are the numbers callers see in `Error(Contract, #...)`, so they are part of the gate's public interface.
+    assert_eq!(Error::PolicyUnavailable as u32, 1);
+    assert_eq!(Error::Inactive as u32, 10);
+    assert_eq!(Error::BelowMinimum as u32, 11);
+    assert_eq!(Error::BalanceUnavailable as u32, 12);
+    assert_eq!(Error::BeforeWindow as u32, 13);
+    assert_eq!(Error::AfterWindow as u32, 14);
+}
+
+#[test]
 fn the_reason_codes_declared_here_are_the_real_contracts() {
     // `DenyReason` is declared by hand. Its codes must be the ones the real contract returns, or a refusal would be misread.
     assert_eq!(DenyReason::None as u32, policy::DenyReason::None as u32);

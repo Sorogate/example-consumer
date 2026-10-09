@@ -44,6 +44,19 @@ gate does three things, in this order (`src/lib.rs`, about 40 lines of logic):
    an answer that is not a decision), the answer is no.
 3. **Enforce the decision**: a denial stops the call with the policy's reason, and nothing is recorded.
 
+The gate itself exposes a small numeric error interface. Callers see values such as `Error(Contract, #11)`, so the enum
+values in `src/lib.rs` are part of the public contract API: they are read by scripts and other contracts, not just by Rust
+code in this repository.
+
+| Code | Error | Returned when | Sorogate `DenyReason` it mirrors |
+| --- | --- | --- | --- |
+| `1` | `PolicyUnavailable` | The policy contract could not answer, or the policy said no without a reason | none |
+| `10` | `Inactive` | The policy is inactive | `Inactive` |
+| `11` | `BelowMinimum` | The subject does not meet the policy's minimum balance | `BelowMinimum` |
+| `12` | `BalanceUnavailable` | The policy cannot read the subject's balance | `BalanceUnavailable` |
+| `13` | `BeforeWindow` | The subject is outside the allowed time window on the early side | `BeforeWindow` |
+| `14` | `AfterWindow` | The subject is outside the allowed time window on the late side | `AfterWindow` |
+
 ## Run it, from nothing
 
 You need Rust (rustup installs the version in `rust-toolchain.toml`, with the `wasm32v1-none` target, on first use) and the
